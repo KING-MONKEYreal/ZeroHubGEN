@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeroHub Roblox Gen</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    background: linear-gradient(135deg,#0b0b0f,#14141f);
+    color: #fff;
+  }
+  .container { max-width: 900px; margin: 40px auto; padding: 20px; }
+  h1 { text-align:center; font-size:2.5em; margin-bottom:20px; }
+  
+  nav { display:flex; justify-content:center; margin-bottom:25px; border-radius:10px; overflow:hidden; }
+  nav button {
+    flex:1; padding:14px 0; border:none; cursor:pointer;
+    font-weight:bold; background:#1b1b29; color:#ccc; transition:0.2s;
+  }
+  nav button.active { background:#5865f2; color:#fff; }
+
+  .tab-content {
+    display:none; 
+    background:#171726; 
+    padding:25px; 
+    border-radius:12px; 
+    box-shadow:0 0 25px rgba(0,0,0,.4); 
+    margin-bottom:15px;
+  }
+  .tab-content.active { display:block; }
+
+  .card { margin-bottom:20px; padding:20px; border-radius:10px; background:#1b1b29; }
+  .card h2 { margin-top:0; margin-bottom:12px; }
+  button.action {
+    width:100%; padding:14px; border:none; border-radius:8px; 
+    background:#5865f2; font-size:16px; color:#fff; cursor:pointer; font-weight:bold; transition:0.2s;
+  }
+  button.action:hover { background:#4752c4; }
+  button.action:disabled { background:#333; cursor:not-allowed; }
+
+  .status-bar { display:flex; justify-content:space-between; background:#22223c; padding:12px; border-radius:8px; margin-bottom:12px; }
+  .status-bar span { font-weight:bold; }
+
+  #output { margin-top:15px; background:#111; padding:12px; border-radius:8px; min-height:50px; word-break:break-word; }
+
+  .footer { text-align:center; opacity:0.5; margin-top:30px; font-size:14px; }
+
+  canvas { background:#0d0d14; width:100%; margin-top:15px; border-radius:6px; }
+
+  input { padding:10px; border-radius:6px; border:none; width:70%; margin-right:10px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🔥 ZeroHub Roblox Generator</h1>
+
+  <nav>
+    <button class="tab active" data-target="freeTab">Free Gen</button>
+    <button class="tab" data-target="paidTab">Paid Gen</button>
+    <button class="tab" data-target="statsTab">Stats</button>
+    <button class="tab" data-target="infoTab">Info</button>
+  </nav>
+
+  <!-- FREE TAB -->
+  <div id="freeTab" class="tab-content active">
+    <div class="status-bar">
+      <div>Stock: <span id="freeStock">0</span></div>
+      <div>Status: <span id="freeStatus">Online</span></div>
+    </div>
+    <button id="freeBtn" class="action">Generate Free Account</button>
+    <p id="freeTimer" style="margin-top:8px;"></p>
+    <div id="output">Your account will appear here.</div>
+  </div>
+
+  <!-- PAID TAB -->
+  <div id="paidTab" class="tab-content">
+    <div class="status-bar">
+      <div>Stock: <span id="paidStock">0</span></div>
+      <div>Status: <span id="paidStatus">Online</span></div>
+    </div>
+    <button id="paidBtn" class="action">Generate Paid Account</button>
+    <p id="paidTimer" style="margin-top:8px;"></p>
+  </div>
+
+  <!-- STATS TAB -->
+  <div id="statsTab" class="tab-content">
+    <h2>📊 Generation Stats</h2>
+    <p>Total Generated: <span id="totalGens">0</span></p>
+    <canvas id="chart" width="400" height="200"></canvas>
+  </div>
+
+  <!-- INFO TAB -->
+  <div id="infoTab" class="tab-content">
+    <h2>ℹ️ Info</h2>
+    <ul>
+      <li>Free generator with cooldowns</li>
+      <li>Paid generator coming soon</li>
+      <li>Accounts are tracked per IP</li>
+      <li>History is saved locally & in admin panel</li>
+    </ul>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div class="card">
+    <input id="adminPass" type="password" placeholder="Admin Password">
+    <button onclick="adminLogin()">Login Admin</button>
+    <div id="adminPanel" style="display:none; margin-top:10px;">
+      <h3>👑 Admin Panel</h3>
+      <pre id="usedAccounts"></pre>
+    </div>
+  </div>
+
+  <div class="footer">© 2026 ZeroHub — Chance & WRLD</div>
+</div>
+
+<script>
+// ===== STOCK =====
+let freeStock = ["Vex_Grid701:BloxgenX7M8U","Ellayworth:Bloxgen52SLW","Jetxcave:BloxgenELQJV"];
+let paidStock = [];
+
+// ===== USED + IP + STATS =====
+let used = JSON.parse(localStorage.getItem("used")||"[]");
+let stats = JSON.parse(localStorage.getItem("stats")||"{\"free\":0,\"paid\":0}");
+let ip = localStorage.getItem("fake_ip");
+if(!ip){ ip = "10.0."+Math.floor(Math.random()*255)+"."+Math.floor(Math.random()*255); localStorage.setItem("fake_ip",ip); }
+
+// ===== COOLDOWNS =====
+const cooldownTime = 60;
+let lastFree = JSON.parse(localStorage.getItem("lastFree")||"0");
+let lastPaid = JSON.parse(localStorage.getItem("lastPaid")||"0");
+
+// ===== TAB SWITCH =====
+document.querySelectorAll(".tab").forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".tab-content").forEach(c=>c.classList.remove("active"));
+    document.getElementById(btn.dataset.target).classList.add("active");
+  };
+});
+
+// ===== UI RENDER =====
+function render(){
+  document.getElementById("freeStock").innerText = freeStock.length;
+  document.getElementById("paidStock").innerText = paidStock.length;
+  document.getElementById("totalGens").innerText = stats.free+stats.paid;
+  drawChart();
+}
+render();
+
+// ===== TIMER UPDATE =====
+function updateTimers(){
+  let now = Date.now();
+  let f = Math.max(0, cooldownTime - Math.floor((now-lastFree)/1000));
+  let p = Math.max(0, cooldownTime - Math.floor((now-lastPaid)/1000));
+  document.getElementById("freeTimer").innerText = f>0 ? `Wait ${f}s`:"";
+  document.getElementById("paidTimer").innerText = p>0 ? `Wait ${p}s`:"";
+  document.getElementById("freeBtn").disabled=f>0||freeStock.length===0;
+  document.getElementById("paidBtn").disabled=p>0||paidStock.length===0;
+}
+setInterval(updateTimers,500);
+
+// ===== GENERATE =====
+function generate(type){
+  let list = type==="free"?freeStock:paidStock;
+  if(list.length===0){ alert("🚫 No accounts available"); return; }
+  if(type==="free") lastFree=Date.now(); else lastPaid=Date.now();
+  localStorage.setItem(type==="free"?"lastFree":"lastPaid", type==="free"?lastFree:lastPaid);
+
+  let acc = list.shift();
+  used.push({acc,ip,type,time:new Date().toISOString()});
+  if(type==="free") stats.free++; else stats.paid++;
+
+  localStorage.setItem("used",JSON.stringify(used));
+  localStorage.setItem("stats",JSON.stringify(stats));
+  localStorage.setItem("last",acc);
+  alert("Copied: "+acc);
+  render();
+}
+document.getElementById("freeBtn").onclick=()=>generate("free");
+document.getElementById("paidBtn").onclick=()=>generate("paid");
+
+// ===== ADMIN LOGIN =====
+function adminLogin(){
+  let pass=document.getElementById("adminPass").value;
+  if(pass==="adminwrld"){
+    document.getElementById("adminPanel").style.display="block";
+    document.getElementById("usedAccounts").innerText=used.map(u=>`${u.acc} | ${u.ip} | ${u.type}`).join("\n");
+  }else alert("Wrong password");
+}
+
+// ===== CHART =====
+function drawChart(){
+  let canvas=document.getElementById("chart");
+  let ctx=canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  let max=Math.max(stats.free,stats.paid,1);
+  let freeH=(stats.free/max)*150;
+  let paidH=(stats.paid/max)*150;
+  ctx.fillStyle="#5865f2";
+  ctx.fillRect(100,180-freeH,50,freeH);
+  ctx.fillStyle="#f39c12";
+  ctx.fillRect(250,180-paidH,50,paidH);
+  ctx.fillStyle="#fff";
+  ctx.fillText("Free",110,195);
+  ctx.fillText("Paid",260,195);
+  ctx.fillText(stats.free,115,170-freeH);
+  ctx.fillText(stats.paid,265,170-paidH);
+}
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
